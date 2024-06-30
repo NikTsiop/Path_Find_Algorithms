@@ -1,39 +1,33 @@
 from tkinter import *
 import tkinter as tk
-from enum import Enum
 import random
-
-class TileType:
-    TILE = 0
-    START = 1
-    TARGET = 2
-    OBSTACLE = 3
-
-class Tile:
-    def __init__(self, point_type: TileType, widget: tk.Frame) -> None:
-        self.type: TileType = point_type
-        self.widget: tk.Frame = widget
-        self.isSetted = False
-        self.point = (-1, -1)
+from models import *
 
 class Maze:
-    def __init__(self, rows: int, cols: int, name, start_color, step_color, tile_color, target_color, obstacle_color):
+    def __init__(self, name: str = "Maze"):
         self.root = Tk()
         self.name = name
+        
         self.start_isSetted = False
         self.target_isSetted = False
         self.start_point = (-1, -1)
         self.target_point = (-1, -1)
-        self.start_color = start_color
-        self.step_color = step_color
-        self.tile_color = tile_color
-        self.target_color = target_color
-        self.obstacle_color = obstacle_color
         self.start_point_clicked = False
         self.goal_point_clicked = False
         self.obstacle_clicked = False
-        self.grid_rows = rows
-        self.grid_cols = cols
+        
+        #Defualt configuration
+        self.config_dict = {
+            'start_color': 'lime green',
+            'step_color': 'yellow2',
+            'tile_color': 'white',
+            'target_color': 'brown1',
+            'obstacle_color': 'dim gray',
+            'rows': 10,
+            'cols': 10
+        }
+        self.configure_grid()
+        
         self.tile_width = 50
         self.tile_height = 50
         self.window_width = int((self.grid_rows*self.tile_width))
@@ -42,27 +36,70 @@ class Maze:
         self.root.geometry(f'{self.window_width}x{self.window_height}')
         
         self.create_menu()
+
+    def config(self, **kwargs):
+        self.config_dict.update(kwargs)
+        self.configure_grid()
         
+    def configure_grid(self):
+        '''Grid configuration'''
+        self.start_color = self.config_dict.get('start_color')
+        self.step_color = self.config_dict.get('step_color')
+        self.tile_color = self.config_dict.get('tile_color')
+        self.target_color = self.config_dict.get('target_color')
+        self.obstacle_color = self.config_dict.get('obstacle_color')
+        self.grid_rows = self.config_dict.get('rows')
+        self.grid_cols = self.config_dict.get('cols')    
+
     def create_menu(self):
-        #setup menu
+        '''Setting up menu'''
         menubar = tk.Menu()
-        maze_menu = tk.Menu(menubar, tearoff=False)
-        maze_menu.add_command(
+        create_maze_menu = tk.Menu(menubar, tearoff=False)
+        create_maze_menu.add_command(
             label= 'Set Start Point',
             accelerator= 'Ctrl+S',
             command= self.startPoint
         )
-        maze_menu.add_command(
+        create_maze_menu.add_command(
             label='Set Goal point',
             accelerator='Ctrl+G',
             command = self.goalPoint
         )
-        maze_menu.add_command(
+        create_maze_menu.add_command(
             label='Set Obstacles',
             accelerator='Ctrl+O',
             command = self.obstaclesPoints
         )
-        menubar.add_cascade(menu=maze_menu, label='Maze')
+        menubar.add_cascade(menu=create_maze_menu, label='Create Maze')
+        
+        run_menu = tk.Menu(menubar, tearoff=False)
+        run_menu.add_command(
+            label= 'Run',
+            accelerator= 'F5',
+            command= self.run_callback
+        )
+        run_menu.add_command(
+            label= 'Step',
+            accelerator= 'F10',
+            command= self.step_callback
+        )
+        run_menu.add_command(
+            label= 'Step Back',
+            accelerator= 'F11',
+            command= self.step_back_callback
+        )
+        run_menu.add_command(
+            label= 'Pause',
+            accelerator= 'F12',
+            command= self.pause_callback
+        )
+        
+        self.root.bind_all("<F5>", self.run_callback)
+        self.root.bind_all("<F10>", self.step_callback)
+        self.root.bind_all("<F11>", self.step_back_callback)
+        self.root.bind_all("<F12>", self.pause_callback)
+        menubar.add_cascade(menu=run_menu, label='Run')
+        
         self.root.config(menu=menubar)
         
         #bind the CTRL+S shorcut to the `startPoint()` function
@@ -74,6 +111,18 @@ class Maze:
         #bind the CTRL+O shorcut to the `obstaclesPoints()` function
         self.root.bind_all("<Control-o>", self.obstaclesPoints)
         self.root.bind_all("<Control-O>", self.obstaclesPoints)
+    
+    def step_callback():
+        pass
+    
+    def step_back_callback():
+        pass
+    
+    def run_callback():
+        pass
+    
+    def pause_callback():
+        pass
     
     def startPoint(self):
         self.start_point_clicked = True
@@ -99,6 +148,7 @@ class Maze:
                 self.tiles[row][col] = tile_obj
     
     def on_frame_clicked(self, event, x, y):
+        '''On click actions'''
         if event.num == 1 :
             if self.start_point_clicked and not self.start_isSetted:
                 self.set_point(x, y, TileType.START, self.start_color)
@@ -130,31 +180,31 @@ class Maze:
         elif type_point == TileType.TARGET:
             self.target_isSetted = True
             self.target_point = self.tiles[x][y].point
+        elif type_point == TileType.OBSTACLE:
+            self.tiles[x][y].isSteppable = False
 
-    def set_obstacles(self, num_obs: int):
-        '''Setting obstacles for the maze'''
-        #Number should be less that the tiles
-        if num_obs == 0:
-            pass
-        elif num_obs >= (self.grid_rows*self.grid_cols):
-            raise 'Number of obstacle must be less that the number of the rows and cols'
-        elif num_obs < 0:
-            raise 'Number of obstacle cannot be less that zero'
-        for i in range(num_obs):
-            positions = [self.start_point, self.goal_point]
-            num_x = random.randint(0, self.grid_rows-1)
-            num_y = random.randint(0, self.grid_cols-1)
-            while (num_x, num_y) in positions:
-                num_x = random.randint(0, self.grid_rows-1)
-                num_y = random.randint(0, self.grid_cols-1)    
-            
-            self.tiles[num_x][num_y].configure(bg='gray')
-            positions.append((num_x,num_y))
+    def step(self, x: int, y:int):
+        if self.tiles[x][y].type != TileType.TARGET:
+            self.tiles[x][y].widget.configure(bg=self.step_color)
+            self.tiles[x][y].isStepped = True
+        else:
+            print("Found the target") #TODO Call the function of the winning
+    
+    def back_step(self, x:int, y: int):
+        if self.tiles[x][y].type != TileType.START:
+            self.tiles[x][y].widget.configure(bg=self.tile_color)
+            self.tiles[x][y].isStepped = False
+        
+    def take_a_step(self, x: int, y: int, back_step: bool = False):
+        '''Makes the steps to the next position'''
+        if back_step:
+            self.back_step(x, y)
+        self.step(x, y)
 
     def create(self):
         '''Create the window'''
         self.root.mainloop()
 
-test = Maze(10, 10,'test','green', 'yellow', 'white', 'red', 'gray')
+test = Maze()
 test.create_grid()
 test.create()
