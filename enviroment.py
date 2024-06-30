@@ -1,7 +1,8 @@
 from tkinter import *
 import tkinter as tk
-import random
-from models import *
+from Models import *
+from Middleware import Middleware
+import time
 
 class Maze:
     def __init__(self, name: str = "Maze"):
@@ -118,8 +119,15 @@ class Maze:
     def step_back_callback():
         pass
     
-    def run_callback():
-        pass
+    def run_callback(self):
+        middleware = Middleware()
+        results = middleware.use_DFS(self.start_point, self.target_point, self.tiles)
+        
+        if results is not None:
+            actions, cells, num_explored = results
+            for cell in cells:
+                x, y = cell
+                self.take_a_step(x, y, 5000)
     
     def pause_callback():
         pass
@@ -174,6 +182,7 @@ class Maze:
     def set_point(self, x: int, y: int, type_point: TileType, color: str):
         '''Set point of interest for the maze'''
         self.tiles[x][y].widget.configure(bg=color)
+        self.tiles[x][y].type = type_point
         if type_point == TileType.START:
             self.start_isSetted = True
             self.start_point = self.tiles[x][y].point
@@ -183,16 +192,16 @@ class Maze:
         elif type_point == TileType.OBSTACLE:
             self.tiles[x][y].isSteppable = False
 
-    def step(self, x: int, y:int):
+    def step(self, x: int, y:int, delay = 0):
         if self.tiles[x][y].type != TileType.TARGET:
-            self.tiles[x][y].widget.configure(bg=self.step_color)
+            self.tiles[x][y].widget.after(delay, lambda: self.tiles[x][y].widget.configure(bg=self.step_color))
             self.tiles[x][y].isStepped = True
         else:
             print("Found the target") #TODO Call the function of the winning
     
-    def back_step(self, x:int, y: int):
+    def back_step(self, x:int, y: int, delay = 0):
         if self.tiles[x][y].type != TileType.START:
-            self.tiles[x][y].widget.configure(bg=self.tile_color)
+            self.tiles[x][y].widget.after(delay, lambda: self.tiles[x][y].widget.configure(bg=self.tile_color))
             self.tiles[x][y].isStepped = False
         
     def take_a_step(self, x: int, y: int, back_step: bool = False):
