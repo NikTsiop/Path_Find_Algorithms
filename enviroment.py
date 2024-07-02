@@ -1,8 +1,10 @@
 from tkinter import *
+from tkinter import ttk
 import tkinter as tk
 from Models import *
 from Middleware import Middleware
-import time
+from Config.GridConfiguration import GridConfiguration
+from Config.RunConfiguration import RunConfiguration, AlgorithmsTypes
 
 class Maze:
     def __init__(self, name: str = "Maze"):
@@ -17,41 +19,20 @@ class Maze:
         self.goal_point_clicked = False
         self.obstacle_clicked = False
         
-        #Defualt configuration
-        self.config_dict = {
-            'start_color': 'lime green',
-            'step_color': 'yellow2',
-            'tile_color': 'white',
-            'target_color': 'brown1',
-            'obstacle_color': 'dim gray',
-            'rows': 10,
-            'cols': 10
-        }
-        self.configure_grid()
+        self.grid_config = GridConfiguration()
+        self.run_config = RunConfiguration()
         
-        self.tile_width = 50
-        self.tile_height = 50
-        self.window_width = int((self.grid_rows*self.tile_width))
-        self.window_height = int((self.grid_cols*self.tile_height))
+        self.tile_width = 25
+        self.tile_height = 25
+        self.window_width = int((self.grid_config.rows*self.tile_width))
+        self.window_height = int((self.grid_config.cols*self.tile_height))
         self.root.title(self.name)
         self.root.geometry(f'{self.window_width}x{self.window_height}')
         
         self.create_menu()
-
-    def config(self, **kwargs):
-        self.config_dict.update(kwargs)
-        self.configure_grid()
-        
-    def configure_grid(self):
-        '''Grid configuration'''
-        self.start_color = self.config_dict.get('start_color')
-        self.step_color = self.config_dict.get('step_color')
-        self.tile_color = self.config_dict.get('tile_color')
-        self.target_color = self.config_dict.get('target_color')
-        self.obstacle_color = self.config_dict.get('obstacle_color')
-        self.grid_rows = self.config_dict.get('rows')
-        self.grid_cols = self.config_dict.get('cols')    
-
+        self.create_run_config_menu()
+        self.root.grid_columnconfigure(0, weight=1)
+    
     def create_menu(self):
         '''Setting up menu'''
         menubar = tk.Menu()
@@ -112,23 +93,79 @@ class Maze:
         #bind the CTRL+O shorcut to the `obstaclesPoints()` function
         self.root.bind_all("<Control-o>", self.obstaclesPoints)
         self.root.bind_all("<Control-O>", self.obstaclesPoints)
-    
-    def step_callback():
+
+    def selection_changed(self, event):
+        algorithms = event.widget
+        selected_value = algorithms.get()
+        self.run_config.algorithm(selected_value)
+
+    def validation_entry(text, new_text):
+        # First check that the entire content has no more than ten characters.
+        if len(new_text) > 5:
+            return False
+        # Then make sure the text is numeric-only.
+        return text.isdecimal()
+
+    def create_run_config_menu(self):
+        '''Run configuration menu'''
+        run_config_menu = tk.Frame(self.root, bg="blue")
+        
+        #Combobox for choosing of argolirthms
+        algorithms_dropdown = ttk.Combobox(
+            run_config_menu,
+            state="readonly",
+            values= ['DFS', 'BFS'] #TODO replace with dynamic 
+        )
+        algorithms_dropdown.current(self.run_config.algorithm.value)
+        algorithms_dropdown.pack(side=LEFT, padx=2, pady=2)
+        algorithms_dropdown.bind("<<ComboboxSelected>>", self.selection_changed)
+        
+        show_full_search_val = tk.BooleanVar()
+        show_full_search = ttk.Checkbutton(
+            run_config_menu, 
+            text='Show full search', 
+            variable=show_full_search_val,
+            command=lambda: self.run_config.update_config(full_solution = show_full_search_val.get())
+        )
+        show_full_search.pack(side=LEFT, padx=2, pady=2)
+        
+        step_delay_var = tk.StringVar()
+        step_delay_var.set(self.run_config.step_delay)
+        step_delay_label= ttk.Label(run_config_menu, text='Step Delay', font=('caribre', 10, 'bold'))
+        step_delay_label.pack(side=LEFT, padx=2, pady=2)
+        step_delay_entry = ttk.Entry(
+            run_config_menu, 
+            textvariable=step_delay_var, 
+            font=('calibre', 10, 'normal'),
+            width=5, 
+            validatecommand=(run_config_menu.register(self.validation_entry), "%S", "%P")
+        )
+        step_delay_entry.pack(side=LEFT, padx=2, pady=2)
+        step_delay_entry.bind("<Return>", self.run_config.update_config(step_delay = step_delay_entry.get())) 
+        
+        run_config_menu.grid(row=0, column=0, sticky='ew')
+        
+    def step_callback(self):
         pass
     
-    def step_back_callback():
+    def step_back_callback(self):
         pass
+    
+    def clear_steps(self):
+        for row in range(self.grid_config.rows):
+            for col in range(self.grid_config.cols):
+                if self.tiles[row][col].isStepped:
+                    self.remove_point(row, col)
     
     def run_callback(self):
-        middleware = Middleware()
-        results = middleware.use_DFS(self.start_point, self.target_point, self.tiles)
         
-        if results is not None:
-            actions, cells, num_explored = results
-            for cell in cells:
-                x, y = cell
-                self.take_a_step(x, y, 5000)
-    
+        middleware = Middleware()
+        results  = None
+        self.clear_steps()       
+        if self.run_config.algorithm == AlgorithmsTypes.DFS:
+            results = middleware.use_DFS(self.start_point, self.target_point, self.tiles)
+        self.run(results)
+
     def pause_callback():
         pass
     
@@ -141,12 +178,37 @@ class Maze:
     def obstaclesPoints(self):
         self.obstacle_clicked = True
     
+    def run(self, results):
+        
+        delay = self.run_config.step_delay
+        increment = delay/10
+        
+        if results is not None:
+            solution: tuple = results[0]
+            full_searched_path: list = results[1]
+            actions, cells, num_explored = solution
+            
+            enumerate_list = []
+            
+            if self.run_config.full_solution:
+                enumerate_list = full_searched_path
+            else:
+                enumerate_list = cells
+            
+            for i, coor in enumerate(enumerate_list):
+                x, y = coor
+                self.take_a_step(x, y, delay=delay + i*increment)
+    
     def create_grid(self):
         '''Configure the maze grid'''
-        self.tiles: list[list[Tile]] = [[None for _ in range(self.grid_rows)] for _ in range(self.grid_cols)]
-        for row in range(self.grid_rows):
-            for col in range(self.grid_cols):
-                tile = tk.Frame(self.root, width=self.tile_width, height=self.tile_height, bg=self.tile_color)
+        parent_frame = tk.Frame(self.root, bg='light gray')
+        parent_frame.grid(row=1, column=0, sticky='ew')
+        rows = self.grid_config.rows
+        cols = self.grid_config.cols
+        self.tiles: list[list[Tile]] = [[None for _ in range(rows)] for _ in range(cols)]
+        for row in range(rows):
+            for col in range(cols):
+                tile = tk.Frame(parent_frame, width=self.tile_width, height=self.tile_height, bg=self.grid_config.tile_color)
                 tile.bind("<ButtonPress-1>", lambda event, x = row, y = col : self.on_frame_clicked(event, x, y))
                 tile.bind("<ButtonPress-3>", lambda event, x = row, y = col : self.on_frame_clicked(event, x, y))
                 tile.config(bd=1, relief='raised')
@@ -159,11 +221,11 @@ class Maze:
         '''On click actions'''
         if event.num == 1 :
             if self.start_point_clicked and not self.start_isSetted:
-                self.set_point(x, y, TileType.START, self.start_color)
+                self.set_point(x, y, TileType.START, self.grid_config.start_color)
             elif self.goal_point_clicked and not self.target_isSetted:
-                self.set_point(x, y, TileType.TARGET, self.target_color)
+                self.set_point(x, y, TileType.TARGET, self.grid_config.target_color)
             elif self.obstacle_clicked:
-                self.set_point(x, y, TileType.OBSTACLE, self.obstacle_color)
+                self.set_point(x, y, TileType.OBSTACLE, self.grid_config.obstacle_color)
         elif event.num == 3:
             self.remove_point(x, y)
             
@@ -176,7 +238,7 @@ class Maze:
         elif point.type == TileType.TARGET:
             self.target_isSetted = False
             self.target_point = (-1,-1)  
-        self.tiles[x][y].widget.configure(bg=self.tile_color)
+        self.tiles[x][y].widget.configure(bg=self.grid_config.tile_color)
         self.tiles[x][y].type = TileType.TILE 
         
     def set_point(self, x: int, y: int, type_point: TileType, color: str):
@@ -193,22 +255,20 @@ class Maze:
             self.tiles[x][y].isSteppable = False
 
     def step(self, x: int, y:int, delay = 0):
-        if self.tiles[x][y].type != TileType.TARGET:
-            self.tiles[x][y].widget.after(delay, lambda: self.tiles[x][y].widget.configure(bg=self.step_color))
+        if self.tiles[x][y].type != TileType.TARGET and self.tiles[x][y].type != TileType.START:
+            self.tiles[x][y].widget.after(int(delay), lambda: self.tiles[x][y].widget.configure(bg=self.grid_config.step_color))
             self.tiles[x][y].isStepped = True
-        else:
-            print("Found the target") #TODO Call the function of the winning
     
     def back_step(self, x:int, y: int, delay = 0):
         if self.tiles[x][y].type != TileType.START:
-            self.tiles[x][y].widget.after(delay, lambda: self.tiles[x][y].widget.configure(bg=self.tile_color))
+            self.tiles[x][y].widget.after(delay, lambda: self.tiles[x][y].widget.configure(bg=self.grid_config.tile_color))
             self.tiles[x][y].isStepped = False
         
-    def take_a_step(self, x: int, y: int, back_step: bool = False):
+    def take_a_step(self, x: int, y: int, back_step: bool = False, delay = 0):
         '''Makes the steps to the next position'''
         if back_step:
-            self.back_step(x, y)
-        self.step(x, y)
+            self.back_step(x, y, delay)
+        self.step(x, y, delay)
 
     def create(self):
         '''Create the window'''

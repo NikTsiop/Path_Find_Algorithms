@@ -7,11 +7,13 @@ class Middleware:
         pass
     
     def use_DFS(self, start_point, target_point, tiles: list[list[Tile]]):
-        points = []
-        for row in tiles:
-            for tile in row:
-                points.append((tile.point, tile.type.value))
+        width = len(tiles[0])
+        height = len(tiles)
+        points = [[None for _ in range(width)] for _ in range(height)]
+        for row in range(width):
+            for col in range(height):
+                points[row][col] = tiles[row][col].type.value
             
-        dfs = DFS(start_point, target_point, points, len(tiles[0]), len(tiles))
+        dfs = DFS(start_point, target_point, points, width, height)
         result = dfs.solve()
         return result

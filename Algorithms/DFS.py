@@ -22,14 +22,9 @@ class DFS:
         result = []
         for action, (r, c) in candidates:
             if 0 <= r < self.height and 0 <= c < self.width:
-                obstacle = False
-                for point in self.points:
-                    if point[0] == (r, c):
-                        if point[1] == 3:
-                            obstacle = True
-                        break
-                if not obstacle:
-                    result.append((action, (r, c)))
+                if self.points[r][c] == 3:
+                    continue
+                result.append((action, (r, c)))
         return result
     
     def solve(self) -> tuple:
@@ -41,14 +36,17 @@ class DFS:
         frontier.add(start)
         
         self.explored = set()
+        full_searched_path = list()
         
         while True:
             
             if frontier.empty():
-                return self.solution
+                return (self.solution, full_searched_path)
             
             node = frontier.remove()
             self.num_explored +=1
+            
+            full_searched_path.append(node.state)
             
             if node.state == self.target_point:
                 actions = []
@@ -61,8 +59,8 @@ class DFS:
                 actions.reverse()
                 cells.reverse()
                 self.solution = (actions, cells, self.num_explored)
-                return self.solution
-
+                return (self.solution, full_searched_path)
+            
             self.explored.add(node.state)
             
             for action, state in self.neighbors(node.state):
