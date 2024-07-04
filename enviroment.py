@@ -97,7 +97,7 @@ class Maze:
     def selection_changed(self, event):
         algorithms = event.widget
         selected_value = algorithms.get()
-        self.run_config.algorithm(selected_value)
+        self.run_config.algorithm = AlgorithmsTypes[selected_value].value
 
     def validation_entry(text, new_text):
         # First check that the entire content has no more than ten characters.
@@ -125,7 +125,7 @@ class Maze:
             run_config_menu, 
             text='Show full search', 
             variable=show_full_search_val,
-            command=lambda: self.run_config.update_config(full_solution = show_full_search_val.get())
+            command=lambda: self.run_config.update_config(full_solution = str(show_full_search_val.get()))
         )
         show_full_search.pack(side=LEFT, padx=2, pady=2)
         
@@ -141,7 +141,7 @@ class Maze:
             validatecommand=(run_config_menu.register(self.validation_entry), "%S", "%P")
         )
         step_delay_entry.pack(side=LEFT, padx=2, pady=2)
-        step_delay_entry.bind("<Return>", self.run_config.update_config(step_delay = step_delay_entry.get())) 
+        step_delay_entry.bind("<Return>", lambda event: self.run_config.update_config(step_delay = step_delay_entry.get())) 
         
         run_config_menu.grid(row=0, column=0, sticky='ew')
         
