@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import ttk
 import tkinter as tk
+from PIL import Image, ImageTk
 from Models import *
 from Middleware import Middleware
 from Config.GridConfiguration import GridConfiguration
@@ -108,7 +109,37 @@ class Maze:
 
     def create_run_config_menu(self):
         '''Run configuration menu'''
-        run_config_menu = tk.Frame(self.root, bg="blue")
+        run_config_menu = tk.Frame(self.root, bg="light gray")
+        
+        play_original_image = Image.open(r"./assets/icons/play.png")
+        play_icon_image = ImageTk.PhotoImage(play_original_image.resize((16, 16)))
+        play_button = ttk.Button(run_config_menu, image=play_icon_image, command= self.run_callback)
+        play_button.image = play_icon_image      
+        play_button.pack(side=LEFT, padx=2, pady=2)
+        
+        back_step_original_image = Image.open(r"./assets/icons/back_step.png")
+        back_step_icon_image = ImageTk.PhotoImage(back_step_original_image.resize((16, 16)))
+        back_step_button = ttk.Button(run_config_menu, image=back_step_icon_image, command= self.step_back_callback)
+        back_step_button.image = back_step_icon_image      
+        back_step_button.pack(side=LEFT, padx=2, pady=2)
+        
+        step_original_image = Image.open(r"./assets/icons/step.png")
+        step_icon_image = ImageTk.PhotoImage(step_original_image.resize((16, 16)))
+        step_button = ttk.Button(run_config_menu, image=step_icon_image, command= self.step_callback)
+        step_button.image = step_icon_image      
+        step_button.pack(side=LEFT, padx=2, pady=2)
+        
+        reset_original_image = Image.open(r"./assets/icons/reset.png")
+        reset_icon_image = ImageTk.PhotoImage(reset_original_image.resize((16, 16)))
+        reset_button = ttk.Button(run_config_menu, image=reset_icon_image, command= self.clear_steps)
+        reset_button.image = reset_icon_image      
+        reset_button.pack(side=LEFT, padx=2, pady=2)
+        
+        clear_original_image = Image.open(r"./assets/icons/clear.png")
+        clear_icon_image = ImageTk.PhotoImage(clear_original_image.resize((16, 16)))
+        clear_button = ttk.Button(run_config_menu, image=clear_icon_image, command= self.clear_grid)
+        clear_button.image = clear_icon_image      
+        clear_button.pack(side=LEFT, padx=2, pady=2)
         
         #Combobox for choosing of argolirthms
         algorithms_dropdown = ttk.Combobox(
@@ -156,6 +187,11 @@ class Maze:
             for col in range(self.grid_config.cols):
                 if self.tiles[row][col].isStepped:
                     self.remove_point(row, col)
+    
+    def clear_grid(self):
+        for row in range(self.grid_config.rows):
+            for col in range(self.grid_config.cols):
+                self.remove_point(row, col)
     
     def run_callback(self):
         
@@ -237,7 +273,9 @@ class Maze:
             self.start_point = (-1,-1)
         elif point.type == TileType.TARGET:
             self.target_isSetted = False
-            self.target_point = (-1,-1)  
+            self.target_point = (-1,-1)
+        if point.isStepped:
+            point.isStepped = False  
         self.tiles[x][y].widget.configure(bg=self.grid_config.tile_color)
         self.tiles[x][y].type = TileType.TILE 
         
