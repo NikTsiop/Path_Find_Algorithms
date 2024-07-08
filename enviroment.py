@@ -6,6 +6,8 @@ from Models import *
 from Middleware import Middleware
 from Config.GridConfiguration import GridConfiguration
 from Config.RunConfiguration import RunConfiguration, AlgorithmsTypes
+from ExcecutionResult import ExcecutionResult
+from StepExecution import StepTrack
 
 class Maze:
     def __init__(self, name: str = "Maze"):
@@ -19,6 +21,11 @@ class Maze:
         self.start_point_clicked = False
         self.goal_point_clicked = False
         self.obstacle_clicked = False
+        self.isExecuted = False
+        self.clean = True
+        
+        self.execution_result = ExcecutionResult()
+        self.step_track = None
         
         self.grid_config = GridConfiguration()
         self.run_config = RunConfiguration()
@@ -177,10 +184,55 @@ class Maze:
         run_config_menu.grid(row=0, column=0, sticky='ew')
         
     def step_callback(self):
-        pass
+        if self.isExecuted:
+            self.clear_step()
+            if self.step_track.next != None:
+                x, y  = self.step_track.next
+                
+                self.take_a_step(x, y)
+                self.step_track.previous = self.step_track.current
+                self.step_track.current = self.step_track.next
+                
+                possible_index = self.step_track.track + 1
+                possible_next = self.execution_result.solution[possible_index]
+                
+                if self.tiles[possible_next[0]][possible_next[1]].type == TileType.TARGET:
+                    self.step_track.next = None
+                    self.step_track.track -= 1
+                else:
+                    self.step_track.track += 1
+                    self.step_track.next = self.execution_result.solution[self.step_track.track]
+                
+                #print(
+                #    f"next point: {self.step_track.next} -- point type: {self.tiles[x][y].type} -- current point {self.step_track.current} -- previous point {self.step_track.previous} -- track counter {self.step_track.track}"
+                #)
     
     def step_back_callback(self):
-        pass
+        if self.isExecuted:
+            self.clear_step()
+            if self.step_track.previous != None:
+                x, y  = self.step_track.previous
+                currentx, currenty = self.step_track.current
+                self.remove_point(currentx, currenty)
+                self.step_track.next = self.step_track.current
+                self.step_track.current = self.step_track.previous
+                self.step_track.track -= 1
+                if self.step_track.track < 0 :
+                    self.remove_point(self.step_track.current[0], self.step_track.current[1])
+                    self.step_track.track = 0
+                    self.step_track.previous = None
+                    self.step_track.next = self.step_track.current
+                    self.step_track.current = self.start_point
+                else:
+                    self.step_track.previous = self.execution_result.solution[self.step_track.track]
+                #print(
+                #    f"previous point: {self.step_track.previous} -- point type: {self.tiles[x][y].type} -- current point {self.step_track.current} -- next point {self.step_track.next} -- track counter {self.step_track.track}"
+                #)
+    
+    def clear_step(self):
+        if self.clean:
+                self.clear_steps()
+                self.clean = False
     
     def clear_steps(self):
         for row in range(self.grid_config.rows):
@@ -194,12 +246,13 @@ class Maze:
                 self.remove_point(row, col)
     
     def run_callback(self):
-        
         middleware = Middleware()
         results  = None
         self.clear_steps()       
         if self.run_config.algorithm == AlgorithmsTypes.DFS:
             results = middleware.use_DFS(self.start_point, self.target_point, self.tiles)
+            self.isExecuted = True
+            self.clean = True
         self.run(results)
 
     def pause_callback():
@@ -220,16 +273,19 @@ class Maze:
         increment = delay/10
         
         if results is not None:
-            solution: tuple = results[0]
-            full_searched_path: list = results[1]
-            actions, cells, num_explored = solution
+            self.execution_result.actions = results[0][0][0]
+            self.execution_result.solution = results[0][0][1]
+            self.execution_result.searched_nodes = results[1]
+            self.execution_result.total_explored = results[0][1]
+            
+            self.step_track = StepTrack(None, self.start_point, self.execution_result.solution[0])
             
             enumerate_list = []
             
             if self.run_config.full_solution:
-                enumerate_list = full_searched_path
+                enumerate_list = self.execution_result.searched_nodes
             else:
-                enumerate_list = cells
+                enumerate_list = self.execution_result.solution
             
             for i, coor in enumerate(enumerate_list):
                 x, y = coor
