@@ -58,7 +58,7 @@ class DFS:
                     node = node.parent
                 actions.reverse()
                 cells.reverse()
-                self.solution = (actions, cells, self.num_explored)
+                self.solution = ((actions, cells), self.num_explored)
                 return (self.solution, full_searched_path)
             
             self.explored.add(node.state)
