@@ -1,5 +1,5 @@
-from enum import Enum
-from Config.BasicConfiguration import BasicConfiguration
+from config import BasicConfiguration
+from config.algortihm_types import AlgorithmsTypes
 
 #Section
 CONFIG_SECTION = 'run_configuration'
@@ -13,10 +13,6 @@ STEPDELAY = 'step_delay'
 DEFAULT_ALGORITHM = '0'
 DEFAULT_FULL_SOLUTION = 'FALSE'
 DEFAULT_STEP_DELAY = '1000'
-
-class AlgorithmsTypes(Enum):
-    DFS = 0
-    BFS = 1
 
 class RunConfiguration(BasicConfiguration):
     def __init__(self) -> None:

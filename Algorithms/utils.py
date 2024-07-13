@@ -1,4 +1,4 @@
-from Algorithms.Node import Node
+from algorithms.struct_node import Node
 
 class StackFrontier:
     def __init__(self) -> None:
