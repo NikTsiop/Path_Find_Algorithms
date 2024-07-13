@@ -119,7 +119,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-.maze_venv
+maze_venv
 
 # Spyder project settings
 .spyderproject
