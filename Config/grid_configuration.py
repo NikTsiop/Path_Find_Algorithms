@@ -1,4 +1,4 @@
-from Config.BasicConfiguration import BasicConfiguration
+from config.base_configuration import BasicConfiguration
 
 #Section
 CONFIG_SECTION = 'grid_configuration'

@@ -1,5 +1,11 @@
-from Algorithms.DFS import DFS
-from Models import Tile, TileType
+import sys
+import os
+# Append the root directory to sys.path
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, root_path)  # Insert at the beginning of sys.path
+
+from algorithms.dfs import DFS
+from models import Tile
 
 class Middleware:
     

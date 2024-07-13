@@ -1,5 +1,5 @@
-from Algorithms.Node import Node
-from Algorithms.Helpers import StackFrontier
+from algorithms.struct_node import Node
+from algorithms.utils import StackFrontier
 
 class DFS:
     def __init__(self, start_point, target_point, points: list[tuple], width, height) -> None:
