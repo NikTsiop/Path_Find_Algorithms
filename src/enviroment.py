@@ -21,6 +21,7 @@ class Maze:
         self.obstacle_clicked = False
         self.isExecuted = False
         self.clean = True
+        self.drawing = False
         
         self.execution_result = ExcecutionResult()
         self.step_track = None
@@ -54,12 +55,18 @@ class Maze:
     
     def startPoint(self):
         self.start_point_clicked = True
+        self.obstacle_clicked = False
+        self.goal_point_clicked = False
     
     def goalPoint(self):
         self.goal_point_clicked = True
+        self.start_point_clicked = False
+        self.obstacle_clicked = False
     
     def obstaclesPoints(self):
         self.obstacle_clicked = True
+        self.start_point_clicked = False
+        self.goal_point_clicked = False
 
     def step_callback(self):
         if self.isExecuted:
@@ -80,10 +87,6 @@ class Maze:
                 else:
                     self.step_track.track += 1
                     self.step_track.next = self.execution_result.solution[self.step_track.track]
-                
-                #print(
-                #    f"next point: {self.step_track.next} -- point type: {self.tiles[x][y].type} -- current point {self.step_track.current} -- previous point {self.step_track.previous} -- track counter {self.step_track.track}"
-                #)
     
     def step_back_callback(self):
         if self.isExecuted:
@@ -103,9 +106,6 @@ class Maze:
                     self.step_track.current = self.start_point
                 else:
                     self.step_track.previous = self.execution_result.solution[self.step_track.track]
-                #print(
-                #    f"previous point: {self.step_track.previous} -- point type: {self.tiles[x][y].type} -- current point {self.step_track.current} -- next point {self.step_track.next} -- track counter {self.step_track.track}"
-                #)
     
     def clear_step(self):
         if self.clean:
@@ -160,6 +160,33 @@ class Maze:
                 x, y = coor
                 self.take_a_step(x, y, delay=delay + i*increment)
     
+    def update_window_size(self):
+        self.root.update_idletasks()
+        width = self.root.winfo_reqwidth()
+        height = self.root.winfo_reqheight()
+        self.root.geometry(f"{width}x{height}")
+    
+    def on_hover(self, event, x, y):
+        if self.drawing:
+            self.on_frame_clicked(x, y)
+    
+    def on_hold_start(self, event, x, y):
+        self.drawing = True
+        self.on_frame_clicked(x, y)
+    
+    def on_drag(self, event):
+        widget = event.widget.winfo_containing(event.x_root, event.y_root)
+        if widget and isinstance(widget, tk.Frame):
+            row, col = self.get_grid_position(widget)
+            self.on_frame_clicked(row, col)
+    
+    def on_hold_end(self, event):
+        self.drawing = False
+    
+    def get_grid_position(self, widget):
+        info = widget.grid_info()
+        return info["row"], info["column"]
+    
     def create_grid(self):
         '''Configure the maze grid'''
         parent_frame = tk.Frame(self.root, bg='light gray')
@@ -170,25 +197,31 @@ class Maze:
         for row in range(rows):
             for col in range(cols):
                 tile = tk.Frame(parent_frame, width=self.tile_width, height=self.tile_height, bg=self.grid_config.tile_color)
-                tile.bind("<ButtonPress-1>", lambda event, x = row, y = col : self.on_frame_clicked(event, x, y))
-                tile.bind("<ButtonPress-3>", lambda event, x = row, y = col : self.on_frame_clicked(event, x, y))
+                
+                tile.bind("<Enter>", lambda event, x = row, y = col : self.on_hover(event, x, y))
+                tile.bind("ButtonPress-1>", lambda event, x = row, y = col : self.on_hold_start(event, x, y))
+                tile.bind("<B1-Motion>", self.on_drag)
+                tile.bind("<ButtonRelease-1>", self.on_hold_end)
+                
+                #tile.bind("<ButtonPress-3>", lambda event, x = row, y = col : self.on_frame_clicked(event, x, y))
+                #tile.bind("<ButtonRelease-3>", self.on_holdind_right_end)
                 tile.config(bd=1, relief='raised')
                 tile.grid(row=row, column=col)
                 tile_obj = Tile(TileType.TILE, tile)
                 tile_obj.point = (row, col)
                 self.tiles[row][col] = tile_obj
-    
-    def on_frame_clicked(self, event, x, y):
+        self.update_window_size()
+
+    def on_frame_clicked(self, x, y):
         '''On click actions'''
-        if event.num == 1 :
-            if self.start_point_clicked and not self.start_isSetted:
-                self.set_point(x, y, TileType.START, self.grid_config.start_color)
-            elif self.goal_point_clicked and not self.target_isSetted:
-                self.set_point(x, y, TileType.TARGET, self.grid_config.target_color)
-            elif self.obstacle_clicked:
-                self.set_point(x, y, TileType.OBSTACLE, self.grid_config.obstacle_color)
-        elif event.num == 3:
-            self.remove_point(x, y)
+        if self.start_point_clicked and not self.start_isSetted:
+            self.set_point(x, y, TileType.START, self.grid_config.start_color)
+        elif self.goal_point_clicked and not self.target_isSetted:
+            self.set_point(x, y, TileType.TARGET, self.grid_config.target_color)
+        elif self.obstacle_clicked:
+            self.set_point(x, y, TileType.OBSTACLE, self.grid_config.obstacle_color)
+        #elif event.num == 3:
+        #    self.remove_point(x, y)
             
     def remove_point(self, x: int, y: int):
         '''Remove the start point'''
