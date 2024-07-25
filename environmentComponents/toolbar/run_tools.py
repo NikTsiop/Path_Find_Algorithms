@@ -38,7 +38,7 @@ class RunToolbar:
     
     def create_run_config_menu(self, run_callback, step_back_callback, step_callback, clear_steps, clear_grid):
         '''Run configuration menu'''
-        run_config_menu = tk.Frame(self.root, bg="light gray")
+        run_config_menu = tk.Frame(self.root, bd=1, relief=tk.RAISED)
         
         play_original_image = Image.open(rf"{ICONS_PATH}play.png")
         play_icon_image = ImageTk.PhotoImage(play_original_image.resize((16, 16)))
@@ -104,4 +104,11 @@ class RunToolbar:
         #step_delay_entry.bind("<Return>", lambda event: self.run_config.update_config(step_delay = step_delay_entry.get()))
         step_delay_entry.bind("<Return>", self.update)  
         
-        run_config_menu.grid(row=0, column=0, sticky='ew')
+        run_config_menu.grid(row=0, column=0, sticky='nsew')
+        
+        self.root.grid_columnconfigure(0, weight=1)
+        
+        self.root.update_idletasks()
+        width = run_config_menu.winfo_reqwidth()
+        height = run_config_menu.winfo_reqheight()
+        self.root.geometry(f"{width}x{height}")
